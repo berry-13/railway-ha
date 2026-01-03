@@ -22,7 +22,7 @@ A Home Assistant integration to monitor your [Railway](https://railway.com) proj
 2. Click on "Integrations"
 3. Click the three dots in the top right corner
 4. Select "Custom repositories"
-5. Add `https://github.com/berry13/railway-ha` as a custom repository with category "Integration"
+5. Add `https://github.com/berry-13/railway-ha` as a custom repository with category "Integration"
 6. Click "Add"
 7. Search for "Railway" and install it
 8. Restart Home Assistant
