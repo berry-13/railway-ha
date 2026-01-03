@@ -3,14 +3,14 @@
     "step": {
       "user": {
         "title": "Railway API Token",
-        "description": "Enter your Railway API token. You can create one at {create_token_url}",
+        "description": "Enter your Railway API token. You can create one at {create_token_url}. IMPORTANT: Select 'No workspace' when creating the token.",
         "data": {
           "api_token": "API Token",
           "token_type": "Token Type"
         },
         "data_description": {
-          "api_token": "Your Railway API token",
-          "token_type": "Select Personal for account tokens, Team for team-scoped tokens"
+          "api_token": "Your Railway API token (created with 'No workspace' selected)",
+          "token_type": "Select Personal for account tokens"
         }
       },
       "reauth_confirm": {
@@ -23,7 +23,7 @@
       }
     },
     "error": {
-      "invalid_auth": "Invalid API token. Check the token and token type.",
+      "invalid_auth": "Invalid API token. Make sure you created a token with 'No workspace' selected.",
       "cannot_connect": "Failed to connect to Railway API",
       "unknown": "Unexpected error occurred"
     },
@@ -40,17 +40,29 @@
       "current_usage": {
         "name": "Current Usage"
       },
-      "estimated_usage": {
-        "name": "Estimated Usage"
+      "remaining_credits": {
+        "name": "Remaining Credits"
       },
       "projects_count": {
         "name": "Projects"
       },
-      "teams_count": {
-        "name": "Teams"
+      "workspaces_count": {
+        "name": "Workspaces"
       },
-      "project_usage": {
-        "name": "{project_name} Usage"
+      "workspace_usage": {
+        "name": "{workspace_name} Usage"
+      },
+      "templates_earnings_30d": {
+        "name": "Templates (30d)"
+      },
+      "templates_total_earnings": {
+        "name": "Templates Total Earnings"
+      },
+      "referrals_credited": {
+        "name": "Referrals Credited"
+      },
+      "referrals_pending": {
+        "name": "Referrals Pending"
       }
     },
     "binary_sensor": {

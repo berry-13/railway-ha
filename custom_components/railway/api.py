@@ -7,7 +7,11 @@ from typing import Any
 
 import aiohttp
 
-from .const import RAILWAY_API_ENDPOINT
+# Support both package import and direct import for testing
+try:
+    from .const import RAILWAY_API_ENDPOINT
+except ImportError:
+    RAILWAY_API_ENDPOINT = "https://backboard.railway.com/graphql/v2"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,13 +28,42 @@ class RailwayConnectionError(RailwayApiError):
     """Connection error."""
 
 
-# GraphQL Queries
+# GraphQL Queries - Updated based on actual Railway API schema
 QUERY_ME = """
 query me {
   me {
     id
     name
     email
+    avatar
+    isVerified
+    registrationStatus
+  }
+}
+"""
+
+QUERY_ME_WITH_WORKSPACES = """
+query meWithWorkspaces {
+  me {
+    id
+    name
+    email
+    workspaces {
+      id
+      name
+      customer {
+        id
+        creditBalance
+        currentUsage
+        appliedCredits
+        remainingUsageCreditBalance
+        billingEmail
+        state
+        isTrialing
+        isPrepaying
+        trialDaysRemaining
+      }
+    }
   }
 }
 """
@@ -67,53 +100,6 @@ query projects {
 }
 """
 
-QUERY_PROJECT_USAGE = """
-query projectUsage($projectId: String!) {
-  project(id: $projectId) {
-    id
-    name
-    usage {
-      currentUsage
-      estimatedUsage
-    }
-  }
-}
-"""
-
-QUERY_TEAMS = """
-query teams {
-  teams {
-    edges {
-      node {
-        id
-        name
-        avatar
-      }
-    }
-  }
-}
-"""
-
-QUERY_CUSTOMER = """
-query customer {
-  customer {
-    id
-    creditBalance
-    billingEmail
-    state
-  }
-}
-"""
-
-QUERY_USAGE = """
-query usage {
-  usage {
-    currentUsage
-    estimatedUsage
-  }
-}
-"""
-
 QUERY_DEPLOYMENTS = """
 query deployments($projectId: String!) {
   project(id: $projectId) {
@@ -134,6 +120,51 @@ query deployments($projectId: String!) {
         }
       }
     }
+  }
+}
+"""
+
+QUERY_REFERRAL_INFO = """
+query referralInfo($workspaceId: String!) {
+  referralInfo(workspaceId: $workspaceId) {
+    code
+    id
+    status
+    referralStats {
+      credited
+      pending
+    }
+  }
+}
+"""
+
+QUERY_WORKSPACE_TEMPLATES = """
+query workspaceTemplates($workspaceId: String!) {
+  workspaceTemplates(workspaceId: $workspaceId, first: 50) {
+    edges {
+      node {
+        id
+        name
+        code
+        totalPayout
+      }
+    }
+  }
+}
+"""
+
+QUERY_TEMPLATE_METRICS = """
+query templateMetrics($id: String!) {
+  templateMetrics(id: $id) {
+    activeDeployments
+    deploymentsLast90Days
+    earningsLast30Days
+    earningsLast90Days
+    eligibleForSupportBonus
+    supportHealth
+    templateHealth
+    totalDeployments
+    totalEarnings
   }
 }
 """
@@ -241,34 +272,16 @@ class RailwayApiClient:
         data = await self._execute_query(QUERY_ME)
         return data.get("me", {})
 
+    async def async_get_me_with_workspaces(self) -> dict[str, Any]:
+        """Get current user information with workspaces and billing."""
+        data = await self._execute_query(QUERY_ME_WITH_WORKSPACES)
+        return data.get("me", {})
+
     async def async_get_projects(self) -> list[dict[str, Any]]:
         """Get all projects."""
         data = await self._execute_query(QUERY_PROJECTS)
         projects = data.get("projects", {}).get("edges", [])
         return [edge["node"] for edge in projects]
-
-    async def async_get_teams(self) -> list[dict[str, Any]]:
-        """Get all teams."""
-        data = await self._execute_query(QUERY_TEAMS)
-        teams = data.get("teams", {}).get("edges", [])
-        return [edge["node"] for edge in teams]
-
-    async def async_get_customer(self) -> dict[str, Any]:
-        """Get customer billing information."""
-        data = await self._execute_query(QUERY_CUSTOMER)
-        return data.get("customer", {})
-
-    async def async_get_usage(self) -> dict[str, Any]:
-        """Get usage information."""
-        data = await self._execute_query(QUERY_USAGE)
-        return data.get("usage", {})
-
-    async def async_get_project_usage(self, project_id: str) -> dict[str, Any]:
-        """Get usage for a specific project."""
-        data = await self._execute_query(
-            QUERY_PROJECT_USAGE, {"projectId": project_id}
-        )
-        return data.get("project", {})
 
     async def async_get_deployments(self, project_id: str) -> list[dict[str, Any]]:
         """Get deployments for a project."""
@@ -296,41 +309,65 @@ class RailwayApiClient:
         except RailwayApiError:
             return False
 
+    async def async_get_referral_info(self, workspace_id: str) -> dict[str, Any]:
+        """Get referral info for a workspace."""
+        data = await self._execute_query(
+            QUERY_REFERRAL_INFO, {"workspaceId": workspace_id}
+        )
+        return data.get("referralInfo", {})
+
+    async def async_get_workspace_templates(
+        self, workspace_id: str
+    ) -> list[dict[str, Any]]:
+        """Get templates for a workspace."""
+        data = await self._execute_query(
+            QUERY_WORKSPACE_TEMPLATES, {"workspaceId": workspace_id}
+        )
+        edges = data.get("workspaceTemplates", {}).get("edges", [])
+        return [edge["node"] for edge in edges]
+
+    async def async_get_template_metrics(self, template_id: str) -> dict[str, Any]:
+        """Get metrics for a template."""
+        data = await self._execute_query(
+            QUERY_TEMPLATE_METRICS, {"id": template_id}
+        )
+        return data.get("templateMetrics", {})
+
     async def async_get_all_data(self) -> dict[str, Any]:
         """Fetch all data in a single coordinated call."""
         result: dict[str, Any] = {
             "me": {},
-            "customer": {},
-            "usage": {},
+            "workspaces": [],
             "projects": [],
-            "teams": [],
-            "project_usage": {},
             "deployments": {},
+            "referrals": {},
+            "templates": [],
+            "template_metrics": {},
+            "earnings": {
+                "templates_30d": 0.0,
+                "templates_total": 0.0,
+                "templates_payout": 0.0,
+                "referrals_credited": 0,
+                "referrals_pending": 0,
+            },
         }
 
-        # Fetch user info
+        # Fetch user info with workspaces (includes billing)
         try:
-            result["me"] = await self.async_get_me()
+            me_data = await self.async_get_me_with_workspaces()
+            result["me"] = {
+                "id": me_data.get("id"),
+                "name": me_data.get("name"),
+                "email": me_data.get("email"),
+            }
+            result["workspaces"] = me_data.get("workspaces", [])
         except RailwayApiError as err:
-            _LOGGER.warning("Failed to fetch user info: %s", err)
-
-        # Fetch customer/billing info
-        try:
-            result["customer"] = await self.async_get_customer()
-        except RailwayApiError as err:
-            _LOGGER.debug("Failed to fetch customer info: %s", err)
-
-        # Fetch usage info
-        try:
-            result["usage"] = await self.async_get_usage()
-        except RailwayApiError as err:
-            _LOGGER.debug("Failed to fetch usage info: %s", err)
-
-        # Fetch teams
-        try:
-            result["teams"] = await self.async_get_teams()
-        except RailwayApiError as err:
-            _LOGGER.debug("Failed to fetch teams: %s", err)
+            _LOGGER.warning("Failed to fetch user info with workspaces: %s", err)
+            # Fallback to basic user info
+            try:
+                result["me"] = await self.async_get_me()
+            except RailwayApiError as err2:
+                _LOGGER.warning("Failed to fetch basic user info: %s", err2)
 
         # Fetch projects
         try:
@@ -338,20 +375,12 @@ class RailwayApiClient:
         except RailwayApiError as err:
             _LOGGER.warning("Failed to fetch projects: %s", err)
 
-        # Fetch per-project data
+        # Fetch per-project deployments
         for project in result["projects"]:
             project_id = project.get("id")
             if not project_id:
                 continue
 
-            # Project usage
-            try:
-                usage = await self.async_get_project_usage(project_id)
-                result["project_usage"][project_id] = usage.get("usage", {})
-            except RailwayApiError as err:
-                _LOGGER.debug("Failed to fetch usage for project %s: %s", project_id, err)
-
-            # Deployments
             try:
                 result["deployments"][project_id] = await self.async_get_deployments(
                     project_id
@@ -360,5 +389,65 @@ class RailwayApiClient:
                 _LOGGER.debug(
                     "Failed to fetch deployments for project %s: %s", project_id, err
                 )
+
+        # Fetch earnings data per workspace
+        total_referrals_credited = 0
+        total_referrals_pending = 0
+        total_templates_30d = 0.0
+        total_templates_total = 0.0
+        total_templates_payout = 0.0
+
+        for workspace in result["workspaces"]:
+            ws_id = workspace.get("id")
+            if not ws_id:
+                continue
+
+            # Fetch referral info
+            try:
+                referral_info = await self.async_get_referral_info(ws_id)
+                result["referrals"][ws_id] = referral_info
+                stats = referral_info.get("referralStats", {})
+                total_referrals_credited += stats.get("credited", 0)
+                total_referrals_pending += stats.get("pending", 0)
+            except RailwayApiError as err:
+                _LOGGER.debug(
+                    "Failed to fetch referral info for workspace %s: %s", ws_id, err
+                )
+
+            # Fetch templates and their metrics
+            try:
+                templates = await self.async_get_workspace_templates(ws_id)
+                for template in templates:
+                    template["workspace_id"] = ws_id
+                    result["templates"].append(template)
+                    total_templates_payout += template.get("totalPayout", 0) or 0
+
+                    # Fetch metrics for each template
+                    template_id = template.get("id")
+                    if template_id:
+                        try:
+                            metrics = await self.async_get_template_metrics(template_id)
+                            result["template_metrics"][template_id] = metrics
+                            total_templates_30d += metrics.get("earningsLast30Days", 0) or 0
+                            total_templates_total += metrics.get("totalEarnings", 0) or 0
+                        except RailwayApiError as err:
+                            _LOGGER.debug(
+                                "Failed to fetch metrics for template %s: %s",
+                                template_id,
+                                err,
+                            )
+            except RailwayApiError as err:
+                _LOGGER.debug(
+                    "Failed to fetch templates for workspace %s: %s", ws_id, err
+                )
+
+        # Calculate aggregated earnings
+        result["earnings"] = {
+            "templates_30d": total_templates_30d,
+            "templates_total": total_templates_total,
+            "templates_payout": total_templates_payout,
+            "referrals_credited": total_referrals_credited,
+            "referrals_pending": total_referrals_pending,
+        }
 
         return result

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_TOKEN, Platform
@@ -13,11 +14,14 @@ from .api import RailwayApiClient
 from .const import DOMAIN
 from .coordinator import RailwayDataUpdateCoordinator
 
+if TYPE_CHECKING:
+    from typing import TypeAlias
+
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
 
-type RailwayConfigEntry = ConfigEntry[RailwayDataUpdateCoordinator]
+RailwayConfigEntry: TypeAlias = ConfigEntry[RailwayDataUpdateCoordinator]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: RailwayConfigEntry) -> bool:

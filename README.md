@@ -79,6 +79,41 @@ Railway API has rate limits based on your plan:
 
 This integration polls every 15 minutes by default (96 requests/day), well within all plan limits.
 
+## Development & Testing
+
+### Quick Connection Test
+
+Test your API token before installing in Home Assistant:
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/berry-13/railway-ha.git
+cd railway-ha
+
+# 2. Install dependencies
+pip install aiohttp python-dotenv
+
+# 3. Create .env file
+cp .env.example .env
+# Edit .env and add your Railway API token
+
+# 4. Run the test
+python test_connection.py
+```
+
+### Running Tests
+
+```bash
+# Install dev dependencies
+pip install -r requirements-dev.txt
+
+# Run all tests
+pytest
+
+# Run with verbose output
+pytest -v -s
+```
+
 ## Troubleshooting
 
 ### Invalid API Token
