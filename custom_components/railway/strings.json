@@ -1,0 +1,62 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Railway API Token",
+        "description": "Enter your Railway API token. You can create one at {create_token_url}",
+        "data": {
+          "api_token": "API Token"
+        },
+        "data_description": {
+          "api_token": "Your Railway personal or team API token"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate Railway",
+        "description": "Your Railway API token has expired or been revoked. Please enter a new token.",
+        "data": {
+          "api_token": "API Token"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid API token",
+      "cannot_connect": "Failed to connect to Railway API",
+      "unknown": "Unexpected error occurred"
+    },
+    "abort": {
+      "already_configured": "This Railway account is already configured",
+      "reauth_successful": "Re-authentication was successful"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "credit_balance": {
+        "name": "Credit Balance"
+      },
+      "current_usage": {
+        "name": "Current Usage"
+      },
+      "estimated_usage": {
+        "name": "Estimated Usage"
+      },
+      "projects_count": {
+        "name": "Projects"
+      },
+      "teams_count": {
+        "name": "Teams"
+      },
+      "project_usage": {
+        "name": "{project_name} Usage"
+      }
+    },
+    "binary_sensor": {
+      "api_connected": {
+        "name": "API Connected"
+      },
+      "project_healthy": {
+        "name": "{project_name} Health"
+      }
+    }
+  }
+}
