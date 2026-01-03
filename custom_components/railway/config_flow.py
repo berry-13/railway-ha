@@ -5,21 +5,41 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import aiohttp
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_API_TOKEN
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.selector import (
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
+)
 
 from .api import RailwayApiClient, RailwayAuthError, RailwayConnectionError
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+CONF_TOKEN_TYPE = "token_type"
+
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_API_TOKEN): str,
+        vol.Required(CONF_API_TOKEN): TextSelector(
+            TextSelectorConfig(type=TextSelectorType.PASSWORD)
+        ),
+        vol.Required(CONF_TOKEN_TYPE, default="personal"): SelectSelector(
+            SelectSelectorConfig(
+                options=[
+                    {"value": "personal", "label": "Personal Token"},
+                    {"value": "team", "label": "Team Token"},
+                ],
+                mode=SelectSelectorMode.DROPDOWN,
+            )
+        ),
     }
 )
 
@@ -37,16 +57,22 @@ class RailwayConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             api_token = user_input[CONF_API_TOKEN]
+            token_type = user_input.get(CONF_TOKEN_TYPE, "personal")
+
+            _LOGGER.debug("Attempting to validate Railway API token (type: %s)", token_type)
 
             session = async_get_clientsession(self.hass)
-            client = RailwayApiClient(api_token, session)
+            client = RailwayApiClient(api_token, session, token_type)
 
             try:
                 me = await client.async_get_me()
                 account_id = me.get("id")
                 account_name = me.get("name") or me.get("email", "Railway Account")
 
+                _LOGGER.debug("Got account info: id=%s, name=%s", account_id, account_name)
+
                 if not account_id:
+                    _LOGGER.error("No account ID returned from Railway API")
                     errors["base"] = "invalid_auth"
                 else:
                     # Use account ID as unique identifier
@@ -57,17 +83,20 @@ class RailwayConfigFlow(ConfigFlow, domain=DOMAIN):
                         title=account_name,
                         data={
                             CONF_API_TOKEN: api_token,
+                            CONF_TOKEN_TYPE: token_type,
                             "account_id": account_id,
                             "account_name": account_name,
                         },
                     )
 
-            except RailwayAuthError:
+            except RailwayAuthError as err:
+                _LOGGER.error("Railway authentication failed: %s", err)
                 errors["base"] = "invalid_auth"
-            except RailwayConnectionError:
+            except RailwayConnectionError as err:
+                _LOGGER.error("Railway connection failed: %s", err)
                 errors["base"] = "cannot_connect"
             except Exception:
-                _LOGGER.exception("Unexpected exception")
+                _LOGGER.exception("Unexpected exception during Railway setup")
                 errors["base"] = "unknown"
 
         return self.async_show_form(
@@ -93,9 +122,10 @@ class RailwayConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             api_token = user_input[CONF_API_TOKEN]
+            token_type = user_input.get(CONF_TOKEN_TYPE, "personal")
 
             session = async_get_clientsession(self.hass)
-            client = RailwayApiClient(api_token, session)
+            client = RailwayApiClient(api_token, session, token_type)
 
             try:
                 me = await client.async_get_me()
@@ -110,6 +140,7 @@ class RailwayConfigFlow(ConfigFlow, domain=DOMAIN):
                         data={
                             **reauth_entry.data,
                             CONF_API_TOKEN: api_token,
+                            CONF_TOKEN_TYPE: token_type,
                         },
                     )
 

@@ -26,7 +26,7 @@ class RailwayConnectionError(RailwayApiError):
 
 # GraphQL Queries
 QUERY_ME = """
-query {
+query me {
   me {
     id
     name
@@ -36,7 +36,7 @@ query {
 """
 
 QUERY_PROJECTS = """
-query {
+query projects {
   projects {
     edges {
       node {
@@ -81,7 +81,7 @@ query projectUsage($projectId: String!) {
 """
 
 QUERY_TEAMS = """
-query {
+query teams {
   teams {
     edges {
       node {
@@ -95,7 +95,7 @@ query {
 """
 
 QUERY_CUSTOMER = """
-query {
+query customer {
   customer {
     id
     creditBalance
@@ -106,7 +106,7 @@ query {
 """
 
 QUERY_USAGE = """
-query {
+query usage {
   usage {
     currentUsage
     estimatedUsage
@@ -142,23 +142,46 @@ query deployments($projectId: String!) {
 class RailwayApiClient:
     """Railway GraphQL API client."""
 
-    def __init__(self, api_token: str, session: aiohttp.ClientSession) -> None:
-        """Initialize the API client."""
-        self._api_token = api_token
+    def __init__(
+        self,
+        api_token: str,
+        session: aiohttp.ClientSession,
+        token_type: str = "personal",
+    ) -> None:
+        """Initialize the API client.
+
+        Args:
+            api_token: The Railway API token.
+            session: The aiohttp client session.
+            token_type: Type of token - "personal" or "team".
+        """
+        self._api_token = api_token.strip()
         self._session = session
+        self._token_type = token_type
+
+    def _get_headers(self) -> dict[str, str]:
+        """Get the appropriate headers based on token type."""
+        headers = {"Content-Type": "application/json"}
+
+        if self._token_type == "team":
+            headers["Team-Access-Token"] = self._api_token
+        else:
+            # Personal/account token uses Bearer auth
+            headers["Authorization"] = f"Bearer {self._api_token}"
+
+        return headers
 
     async def _execute_query(
         self, query: str, variables: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Execute a GraphQL query."""
-        headers = {
-            "Authorization": f"Bearer {self._api_token}",
-            "Content-Type": "application/json",
-        }
+        headers = self._get_headers()
 
         payload: dict[str, Any] = {"query": query}
         if variables:
             payload["variables"] = variables
+
+        _LOGGER.debug("Executing query to %s", RAILWAY_API_ENDPOINT)
 
         try:
             async with self._session.post(
@@ -166,25 +189,41 @@ class RailwayApiClient:
                 headers=headers,
                 json=payload,
             ) as response:
+                response_text = await response.text()
+                _LOGGER.debug("Response status: %s", response.status)
+
                 if response.status == 401:
+                    _LOGGER.error("Authentication failed (401): %s", response_text)
                     raise RailwayAuthError("Invalid API token")
                 if response.status == 403:
+                    _LOGGER.error("Access denied (403): %s", response_text)
                     raise RailwayAuthError("Access denied")
                 if response.status != 200:
-                    text = await response.text()
+                    _LOGGER.error(
+                        "API request failed with status %s: %s",
+                        response.status,
+                        response_text,
+                    )
                     raise RailwayApiError(
-                        f"API request failed with status {response.status}: {text}"
+                        f"API request failed with status {response.status}: {response_text}"
                     )
 
-                data = await response.json()
+                try:
+                    data = await response.json()
+                except Exception as err:
+                    _LOGGER.error("Failed to parse JSON response: %s", response_text)
+                    raise RailwayApiError(f"Invalid JSON response: {err}") from err
 
                 if "errors" in data:
                     errors = data["errors"]
                     error_messages = [e.get("message", str(e)) for e in errors]
                     error_str = "; ".join(error_messages)
+                    _LOGGER.error("GraphQL errors: %s", error_str)
 
                     if any(
-                        "auth" in msg.lower() or "unauthorized" in msg.lower()
+                        "auth" in msg.lower()
+                        or "unauthorized" in msg.lower()
+                        or "not authenticated" in msg.lower()
                         for msg in error_messages
                     ):
                         raise RailwayAuthError(error_str)
@@ -194,6 +233,7 @@ class RailwayApiClient:
                 return data.get("data", {})
 
         except aiohttp.ClientError as err:
+            _LOGGER.error("Connection error: %s", err)
             raise RailwayConnectionError(f"Connection error: {err}") from err
 
     async def async_get_me(self) -> dict[str, Any]:

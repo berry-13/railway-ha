@@ -5,22 +5,25 @@
         "title": "Railway API Token",
         "description": "Enter your Railway API token. You can create one at {create_token_url}",
         "data": {
-          "api_token": "API Token"
+          "api_token": "API Token",
+          "token_type": "Token Type"
         },
         "data_description": {
-          "api_token": "Your Railway personal or team API token"
+          "api_token": "Your Railway API token",
+          "token_type": "Select Personal for account tokens, Team for team-scoped tokens"
         }
       },
       "reauth_confirm": {
         "title": "Re-authenticate Railway",
         "description": "Your Railway API token has expired or been revoked. Please enter a new token.",
         "data": {
-          "api_token": "API Token"
+          "api_token": "API Token",
+          "token_type": "Token Type"
         }
       }
     },
     "error": {
-      "invalid_auth": "Invalid API token",
+      "invalid_auth": "Invalid API token. Check the token and token type.",
       "cannot_connect": "Failed to connect to Railway API",
       "unknown": "Unexpected error occurred"
     },

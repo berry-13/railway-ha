@@ -23,7 +23,8 @@ type RailwayConfigEntry = ConfigEntry[RailwayDataUpdateCoordinator]
 async def async_setup_entry(hass: HomeAssistant, entry: RailwayConfigEntry) -> bool:
     """Set up Railway from a config entry."""
     session = async_get_clientsession(hass)
-    client = RailwayApiClient(entry.data[CONF_API_TOKEN], session)
+    token_type = entry.data.get("token_type", "personal")
+    client = RailwayApiClient(entry.data[CONF_API_TOKEN], session, token_type)
 
     coordinator = RailwayDataUpdateCoordinator(hass, client, entry)
     await coordinator.async_config_entry_first_refresh()
