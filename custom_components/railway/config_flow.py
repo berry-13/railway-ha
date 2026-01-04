@@ -17,6 +17,7 @@ from homeassistant.const import CONF_API_TOKEN
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
+    SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
@@ -30,6 +31,11 @@ from .const import CONF_SCAN_INTERVAL, CONF_TOKEN_TYPE, DEFAULT_SCAN_INTERVAL_MI
 
 _LOGGER = logging.getLogger(__name__)
 
+TOKEN_TYPE_OPTIONS: list[SelectOptionDict] = [
+    {"value": "personal", "label": "Personal Token"},
+    {"value": "team", "label": "Team Token"},
+]
+
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_API_TOKEN): TextSelector(
@@ -37,17 +43,14 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
         ),
         vol.Required(CONF_TOKEN_TYPE, default="personal"): SelectSelector(
             SelectSelectorConfig(
-                options=[
-                    {"value": "personal", "label": "Personal Token"},
-                    {"value": "team", "label": "Team Token"},
-                ],
+                options=TOKEN_TYPE_OPTIONS,
                 mode=SelectSelectorMode.DROPDOWN,
             )
         ),
     }
 )
 
-SCAN_INTERVAL_OPTIONS = [
+SCAN_INTERVAL_OPTIONS: list[SelectOptionDict] = [
     {"value": "5", "label": "5 minutes"},
     {"value": "10", "label": "10 minutes"},
     {"value": "15", "label": "15 minutes (default)"},

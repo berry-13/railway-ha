@@ -90,7 +90,6 @@ class RailwayApiConnectedSensor(
             "account_id": me.get("id"),
             "account_name": me.get("name"),
             "account_email": me.get("email"),
-            "last_update": self.coordinator.last_update_success_time,
         }
 
 

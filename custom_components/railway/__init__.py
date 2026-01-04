@@ -16,7 +16,7 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_TOKEN_TYPE,
     DEFAULT_SCAN_INTERVAL_MINUTES,
-    DOMAIN,
+    DOMAIN as DOMAIN,  # noqa: PLC0414 - explicit re-export
 )
 from .coordinator import RailwayDataUpdateCoordinator
 

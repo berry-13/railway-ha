@@ -79,6 +79,8 @@ jobs:
         uses: hacs/action@main
         with:
           category: integration
+          # Skip brands check until submitted to home-assistant/brands
+          ignore: brands
 
   hassfest:
     name: Hassfest
