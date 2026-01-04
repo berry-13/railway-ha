@@ -11,7 +11,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import RailwayApiClient, RailwayAuthError, RailwayApiError, RailwayConnectionError
+from .api import (
+    RailwayApiClient,
+    RailwayAuthError,
+    RailwayApiError,
+    RailwayConnectionError,
+)
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)

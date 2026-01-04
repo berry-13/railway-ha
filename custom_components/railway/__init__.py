@@ -59,7 +59,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: RailwayConfigEntry) -> b
     return True
 
 
-async def _async_update_listener(hass: HomeAssistant, entry: RailwayConfigEntry) -> None:
+async def _async_update_listener(
+    hass: HomeAssistant, entry: RailwayConfigEntry
+) -> None:
     """Handle options update."""
     coordinator: RailwayDataUpdateCoordinator = entry.runtime_data
     new_interval = _get_scan_interval(entry)

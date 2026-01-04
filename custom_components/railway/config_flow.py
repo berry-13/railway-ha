@@ -27,7 +27,12 @@ from homeassistant.helpers.selector import (
 )
 
 from .api import RailwayApiClient, RailwayAuthError, RailwayConnectionError
-from .const import CONF_SCAN_INTERVAL, CONF_TOKEN_TYPE, DEFAULT_SCAN_INTERVAL_MINUTES, DOMAIN
+from .const import (
+    CONF_SCAN_INTERVAL,
+    CONF_TOKEN_TYPE,
+    DEFAULT_SCAN_INTERVAL_MINUTES,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -80,7 +85,9 @@ class RailwayConfigFlow(ConfigFlow, domain=DOMAIN):
             api_token = user_input[CONF_API_TOKEN]
             token_type = user_input.get(CONF_TOKEN_TYPE, "personal")
 
-            _LOGGER.debug("Attempting to validate Railway API token (type: %s)", token_type)
+            _LOGGER.debug(
+                "Attempting to validate Railway API token (type: %s)", token_type
+            )
 
             session = async_get_clientsession(self.hass)
             client = RailwayApiClient(api_token, session, token_type)
@@ -90,7 +97,9 @@ class RailwayConfigFlow(ConfigFlow, domain=DOMAIN):
                 account_id = me.get("id")
                 account_name = me.get("name") or me.get("email", "Railway Account")
 
-                _LOGGER.debug("Got account info: id=%s, name=%s", account_id, account_name)
+                _LOGGER.debug(
+                    "Got account info: id=%s, name=%s", account_id, account_name
+                )
 
                 if not account_id:
                     _LOGGER.error("No account ID returned from Railway API")
@@ -129,9 +138,7 @@ class RailwayConfigFlow(ConfigFlow, domain=DOMAIN):
             },
         )
 
-    async def async_step_reauth(
-        self, entry_data: dict[str, Any]
-    ) -> ConfigFlowResult:
+    async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
         """Handle reauthorization."""
         return await self.async_step_reauth_confirm()
 

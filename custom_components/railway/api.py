@@ -230,7 +230,11 @@ class RailwayApiClient:
                     _LOGGER.error("Access denied (403): %s", response_text)
                     raise RailwayAuthError("Access denied")
                 if response.status != 200:
-                    truncated_response = response_text[:500] if len(response_text) > 500 else response_text
+                    truncated_response = (
+                        response_text[:500]
+                        if len(response_text) > 500
+                        else response_text
+                    )
                     _LOGGER.error(
                         "API request failed with status %s: %s",
                         response.status,
@@ -243,7 +247,9 @@ class RailwayApiClient:
                 try:
                     data = await response.json()
                 except (ValueError, aiohttp.ContentTypeError) as err:
-                    _LOGGER.error("Failed to parse JSON response: %s", response_text[:500])
+                    _LOGGER.error(
+                        "Failed to parse JSON response: %s", response_text[:500]
+                    )
                     raise RailwayApiError(f"Invalid JSON response: {err}") from err
 
                 if "errors" in data:
@@ -329,9 +335,7 @@ class RailwayApiClient:
 
     async def async_get_template_metrics(self, template_id: str) -> dict[str, Any]:
         """Get metrics for a template."""
-        data = await self._execute_query(
-            QUERY_TEMPLATE_METRICS, {"id": template_id}
-        )
+        data = await self._execute_query(QUERY_TEMPLATE_METRICS, {"id": template_id})
         return data.get("templateMetrics", {})
 
     async def async_get_all_data(self) -> dict[str, Any]:
@@ -429,8 +433,12 @@ class RailwayApiClient:
                         try:
                             metrics = await self.async_get_template_metrics(template_id)
                             result["template_metrics"][template_id] = metrics
-                            total_templates_30d += metrics.get("earningsLast30Days", 0) or 0
-                            total_templates_total += metrics.get("totalEarnings", 0) or 0
+                            total_templates_30d += (
+                                metrics.get("earningsLast30Days", 0) or 0
+                            )
+                            total_templates_total += (
+                                metrics.get("totalEarnings", 0) or 0
+                            )
                         except RailwayApiError as err:
                             _LOGGER.debug(
                                 "Failed to fetch metrics for template %s: %s",

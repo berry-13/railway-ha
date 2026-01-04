@@ -70,9 +70,11 @@ def get_remaining_credits(data: dict[str, Any]) -> float | None:
 
 def get_earnings_value(key: str):
     """Create a function to get an earnings value by key."""
+
     def getter(data: dict[str, Any]) -> float | int | None:
         earnings = data.get("earnings", {})
         return earnings.get(key)
+
     return getter
 
 
@@ -208,7 +210,9 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class RailwaySensorEntity(CoordinatorEntity[RailwayDataUpdateCoordinator], SensorEntity):
+class RailwaySensorEntity(
+    CoordinatorEntity[RailwayDataUpdateCoordinator], SensorEntity
+):
     """Representation of a Railway sensor."""
 
     entity_description: RailwaySensorEntityDescription
@@ -270,7 +274,9 @@ class RailwayWorkspaceSensor(
         super().__init__(coordinator)
         self._workspace_id = workspace_id
         self._workspace_name = workspace_name
-        self._attr_unique_id = f"{entry.data['account_id']}_workspace_{workspace_id}_usage"
+        self._attr_unique_id = (
+            f"{entry.data['account_id']}_workspace_{workspace_id}_usage"
+        )
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"workspace_{workspace_id}")},
             name=f"Railway Workspace: {workspace_name}",
