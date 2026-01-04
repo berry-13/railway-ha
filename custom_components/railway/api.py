@@ -7,11 +7,10 @@ from typing import Any
 
 import aiohttp
 
-# Support both package import and direct import for testing
-try:
-    from .const import RAILWAY_API_ENDPOINT
-except ImportError:
-    RAILWAY_API_ENDPOINT = "https://backboard.railway.com/graphql/v2"
+from .const import RAILWAY_API_ENDPOINT
+
+# Request timeout for API calls
+REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -219,6 +218,7 @@ class RailwayApiClient:
                 RAILWAY_API_ENDPOINT,
                 headers=headers,
                 json=payload,
+                timeout=REQUEST_TIMEOUT,
             ) as response:
                 response_text = await response.text()
                 _LOGGER.debug("Response status: %s", response.status)
@@ -230,19 +230,20 @@ class RailwayApiClient:
                     _LOGGER.error("Access denied (403): %s", response_text)
                     raise RailwayAuthError("Access denied")
                 if response.status != 200:
+                    truncated_response = response_text[:500] if len(response_text) > 500 else response_text
                     _LOGGER.error(
                         "API request failed with status %s: %s",
                         response.status,
-                        response_text,
+                        truncated_response,
                     )
                     raise RailwayApiError(
-                        f"API request failed with status {response.status}: {response_text}"
+                        f"API request failed with status {response.status}: {truncated_response}"
                     )
 
                 try:
                     data = await response.json()
-                except Exception as err:
-                    _LOGGER.error("Failed to parse JSON response: %s", response_text)
+                except (ValueError, aiohttp.ContentTypeError) as err:
+                    _LOGGER.error("Failed to parse JSON response: %s", response_text[:500])
                     raise RailwayApiError(f"Invalid JSON response: {err}") from err
 
                 if "errors" in data:

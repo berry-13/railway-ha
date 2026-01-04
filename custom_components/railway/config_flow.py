@@ -7,8 +7,14 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
 from homeassistant.const import CONF_API_TOKEN
+from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     SelectSelector,
@@ -20,11 +26,9 @@ from homeassistant.helpers.selector import (
 )
 
 from .api import RailwayApiClient, RailwayAuthError, RailwayConnectionError
-from .const import DOMAIN
+from .const import CONF_SCAN_INTERVAL, CONF_TOKEN_TYPE, DEFAULT_SCAN_INTERVAL_MINUTES, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
-
-CONF_TOKEN_TYPE = "token_type"
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
@@ -43,11 +47,25 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     }
 )
 
+SCAN_INTERVAL_OPTIONS = [
+    {"value": "5", "label": "5 minutes"},
+    {"value": "10", "label": "10 minutes"},
+    {"value": "15", "label": "15 minutes (default)"},
+    {"value": "30", "label": "30 minutes"},
+    {"value": "60", "label": "60 minutes"},
+]
+
 
 class RailwayConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Railway."""
 
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        """Get the options flow for this handler."""
+        return RailwayOptionsFlowHandler(config_entry)
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -156,4 +174,40 @@ class RailwayConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="reauth_confirm",
             data_schema=STEP_USER_DATA_SCHEMA,
             errors=errors,
+        )
+
+
+class RailwayOptionsFlowHandler(OptionsFlow):
+    """Handle Railway options."""
+
+    def __init__(self, config_entry: ConfigEntry) -> None:
+        """Initialize options flow."""
+        self.config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Manage the options."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        current_interval = self.config_entry.options.get(
+            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES
+        )
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_SCAN_INTERVAL,
+                        default=str(current_interval),
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=SCAN_INTERVAL_OPTIONS,
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
+                }
+            ),
         )

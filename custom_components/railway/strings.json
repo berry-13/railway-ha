@@ -32,6 +32,19 @@
       "reauth_successful": "Re-authentication was successful"
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Railway Options",
+        "data": {
+          "scan_interval": "Update interval"
+        },
+        "data_description": {
+          "scan_interval": "How often to fetch data from Railway API"
+        }
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "credit_balance": {
